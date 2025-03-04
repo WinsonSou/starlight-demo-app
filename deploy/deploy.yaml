@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: starlight-deployment
+  labels:
+    app: starlight-detection
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: starlight-detection
+  template:
+    metadata:
+      labels:
+        app: starlight-detection
+    spec:
+      containers:
+      - name: starlight-detection
+        image: winsonsou/starlight-demo-app:1.0.0
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 80
+        resources:
+          limits:
+            cpu: "0.5"
+            memory: "256Mi"
+          requests:
+            cpu: "0.2"
+            memory: "128Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: starlight-service
+spec:
+  type: NodePort
+  ports:
+  - port: 80
+    targetPort: 80
+    nodePort: 31000
+    protocol: TCP
+  selector:
+    app: starlight-detection

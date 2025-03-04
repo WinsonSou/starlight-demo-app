@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Starlight Early Detection System (Mock)</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #0a0a0a;
+      color: #33ff33;
+      font-family: 'Courier New', monospace;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+    
+    header {
+      background-color: #111;
+      padding: 10px 20px;
+      border-bottom: 1px solid #33ff33;
+    }
+    
+    h1 {
+      margin: 0;
+      font-size: 24px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+    
+    .control-panel {
+      display: flex;
+      padding: 10px;
+      background-color: #111;
+      border-bottom: 1px solid #33ff33;
+      justify-content: space-between;
+    }
+    
+    .control-button {
+      background-color: #222;
+      color: #33ff33;
+      border: 1px solid #33ff33;
+      padding: 5px 15px;
+      cursor: pointer;
+      font-family: 'Courier New', monospace;
+      text-transform: uppercase;
+      transition: all 0.3s;
+    }
+    
+    .control-button:hover {
+      background-color: #33ff33;
+      color: #000;
+    }
+    
+    .status {
+      padding: 5px 15px;
+      display: flex;
+      align-items: center;
+    }
+    
+    .status-indicator {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background-color: #33ff33;
+      margin-right: 10px;
+      animation: blink 1.5s infinite;
+    }
+    
+    @keyframes blink {
+      0% { opacity: 1; }
+      50% { opacity: 0.3; }
+      100% { opacity: 1; }
+    }
+    
+    .radar-container {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+      padding: 20px;
+    }
+    
+    .radar {
+      width: 500px;
+      height: 500px;
+      border-radius: 50%;
+      background-color: rgba(0, 20, 0, 0.5);
+      position: relative;
+      border: 2px solid #33ff33;
+      overflow: hidden;
+    }
+    
+    .grid-line {
+      position: absolute;
+      background-color: rgba(51, 255, 51, 0.3);
+    }
+    
+    .horizontal {
+      width: 100%;
+      height: 1px;
+      left: 0;
+    }
+    
+    .vertical {
+      height: 100%;
+      width: 1px;
+      top: 0;
+    }
+    
+    .circle {
+      position: absolute;
+      border-radius: 50%;
+      border: 1px solid rgba(51, 255, 51, 0.3);
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+    }
+    
+    .scanner {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 50%;
+      height: 2px;
+      background-color: rgba(51, 255, 51, 0.7);
+      transform-origin: left center;
+      animation: scan 4s linear infinite;
+      box-shadow: 0 0 10px #33ff33;
+    }
+    
+    @keyframes scan {
+      0% { transform: translateY(-50%) rotate(0deg); }
+      100% { transform: translateY(-50%) rotate(360deg); }
+    }
+    
+    .blip {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      background-color: #33ff33;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      box-shadow: 0 0 10px #33ff33;
+      opacity: 0;
+    }
+    
+    .blip.active {
+      animation: blip-animation 2s ease-out;
+    }
+    
+    @keyframes blip-animation {
+      0% { opacity: 1; transform: translate(-50%, -50%) scale(0.5); }
+      70% { opacity: 0.7; }
+      100% { opacity: 0; transform: translate(-50%, -50%) scale(1.5); }
+    }
+    
+    .radar-info {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      background-color: rgba(0, 0, 0, 0.7);
+      padding: 10px;
+      border: 1px solid #33ff33;
+      max-width: 250px;
+      font-size: 14px;
+    }
+    
+    .coordinates {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      font-size: 12px;
+    }
+    
+    #alert-panel {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background-color: rgba(0, 0, 0, 0.8);
+      border: 1px solid #ff3333;
+      color: #ff3333;
+      padding: 15px;
+      display: none;
+      z-index: 100;
+      animation: alert 0.5s ease-in-out;
+    }
+    
+    @keyframes alert {
+      0% { transform: translateX(100%); }
+      100% { transform: translateX(0); }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Starlight Early Detection System (Mock)</h1>
+  </header>
+  
+  <div class="control-panel">
+    <div>
+      <button class="control-button" id="start-btn">Start Scan</button>
+      <button class="control-button" id="stop-btn">Stop Scan</button>
+      <button class="control-button" id="reset-btn">Reset</button>
+    </div>
+    <div class="status">
+      <div class="status-indicator"></div>
+      <span id="status-text">System Active</span>
+    </div>
+  </div>
+  
+  <div class="radar-container">
+    <div class="radar" id="radar">
+      <!-- Grid lines -->
+      <div class="grid-line horizontal" style="top: 50%;"></div>
+      <div class="grid-line vertical" style="left: 50%;"></div>
+      
+      <!-- Concentric circles -->
+      <div class="circle" style="width: 80%; height: 80%;"></div>
+      <div class="circle" style="width: 60%; height: 60%;"></div>
+      <div class="circle" style="width: 40%; height: 40%;"></div>
+      <div class="circle" style="width: 20%; height: 20%;"></div>
+      
+      <!-- Scanner line -->
+      <div class="scanner" id="scanner"></div>
+      
+      <!-- Coordinates display -->
+      <div class="coordinates" id="coordinates">X: 0 | Y: 0 | Range: 0</div>
+    </div>
+    
+    <div class="radar-info">
+      <p>Scanner: <span id="scanner-status">Active</span></p>
+      <p>Range: <span id="range">500</span> km</p>
+      <p>Targets detected: <span id="targets">0</span></p>
+      <p>System status: <span id="system-status">Operational</span></p>
+    </div>
+  </div>
+  
+  <div id="alert-panel">
+    <strong>ALERT!</strong> Target detected at coordinates <span id="alert-coords"></span>
+  </div>
+  
+  <script>
+    // DOM elements
+    const radar = document.getElementById('radar');
+    const scanner = document.getElementById('scanner');
+    const startBtn = document.getElementById('start-btn');
+    const stopBtn = document.getElementById('stop-btn');
+    const resetBtn = document.getElementById('reset-btn');
+    const statusText = document.getElementById('status-text');
+    const scannerStatus = document.getElementById('scanner-status');
+    const targetsCounter = document.getElementById('targets');
+    const coordinatesDisplay = document.getElementById('coordinates');
+    const alertPanel = document.getElementById('alert-panel');
+    const alertCoords = document.getElementById('alert-coords');
+    
+    // Variables
+    let isScanning = true;
+    let targets = 0;
+    let blips = [];
+    
+    // Start with scanner animation paused
+    scanner.style.animationPlayState = 'running';
+    
+    // Button event listeners
+    startBtn.addEventListener('click', () => {
+      scanner.style.animationPlayState = 'running';
+      isScanning = true;
+      statusText.textContent = 'System Active';
+      scannerStatus.textContent = 'Active';
+    });
+    
+    stopBtn.addEventListener('click', () => {
+      scanner.style.animationPlayState = 'paused';
+      isScanning = false;
+      statusText.textContent = 'System Paused';
+      scannerStatus.textContent = 'Inactive';
+    });
+    
+    resetBtn.addEventListener('click', () => {
+      // Remove all blips
+      blips.forEach(blip => {
+        if (blip.element && blip.element.parentNode) {
+          blip.element.parentNode.removeChild(blip.element);
+        }
+      });
+      blips = [];
+      targets = 0;
+      targetsCounter.textContent = targets;
+      alertPanel.style.display = 'none';
+    });
+    
+    // Track mouse position for coordinates display
+    radar.addEventListener('mousemove', (e) => {
+      const rect = radar.getBoundingClientRect();
+      const centerX = rect.width / 2;
+      const centerY = rect.height / 2;
+      
+      const x = e.clientX - rect.left - centerX;
+      const y = e.clientY - rect.top - centerY;
+      
+      // Calculate distance from center
+      const distance = Math.sqrt(x * x + y * y);
+      const maxDistance = rect.width / 2;
+      const range = Math.round((distance / maxDistance) * 500); // 500 km max range
+      
+      coordinatesDisplay.textContent = `X: ${Math.round(x)} | Y: ${Math.round(y)} | Range: ${range} km`;
+    });
+    
+    // Get current scanner angle
+    function getScannerAngle() {
+      // Get the computed transform style
+      const transformStyle = window.getComputedStyle(scanner).getPropertyValue('transform');
+      // The matrix values from the transform
+      const matrix = new DOMMatrixReadOnly(transformStyle);
+      // Calculate angle from the matrix
+      // matrix.a is cos(angle) and matrix.b is sin(angle)
+      let angle = Math.atan2(matrix.b, matrix.a);
+      // Convert to degrees and normalize to 0-360
+      angle = angle * (180 / Math.PI);
+      if (angle < 0) angle += 360;
+      return angle;
+    }
+
+    // Function to create blips only in the scanning area
+    function createRandomBlip() {
+      if (!isScanning) return;
+      
+      // Get current scanner angle
+      const scannerAngle = getScannerAngle();
+      
+      // Define a small sector in front of the scanner where blips can appear
+      // (e.g., +/- 15 degrees from current scanner angle)
+      const sectorWidth = 30; // degrees
+      const minAngle = (scannerAngle - sectorWidth/2) % 360;
+      const maxAngle = (scannerAngle + sectorWidth/2) % 360;
+      
+      // Random angle within the current scanner sector
+      let blipAngle;
+      if (minAngle > maxAngle) {
+        // Handle the case where the sector crosses the 0/360 boundary
+        if (Math.random() > 0.5) {
+          blipAngle = minAngle + Math.random() * (360 - minAngle);
+        } else {
+          blipAngle = Math.random() * maxAngle;
+        }
+      } else {
+        blipAngle = minAngle + Math.random() * (maxAngle - minAngle);
+      }
+      
+      // Convert to radians for the math calculations
+      const blipAngleRad = blipAngle * (Math.PI / 180);
+      
+      // Random distance from center
+      const distance = Math.random() * 230; // Max radius is 250px
+      
+      const x = Math.cos(blipAngleRad) * distance + 250; // 250 is center x
+      const y = Math.sin(blipAngleRad) * distance + 250; // 250 is center y
+      
+      // Create blip element
+      const blip = document.createElement('div');
+      blip.className = 'blip';
+      blip.style.left = x + 'px';
+      blip.style.top = y + 'px';
+      radar.appendChild(blip);
+      
+      // Add to blips array
+      const blipObject = {
+        element: blip,
+        x: x - 250, // Relative to center
+        y: y - 250, // Relative to center
+        distance: distance,
+        angle: blipAngle,
+        detected: false
+      };
+      blips.push(blipObject);
+      
+      // Activate the blip (start animation)
+      setTimeout(() => {
+        blip.classList.add('active');
+        
+        // Show alert
+        const range = Math.round((distance / 250) * 500);
+        alertPanel.style.display = 'block';
+        alertCoords.textContent = `X: ${Math.round(x - 250)}, Y: ${Math.round(y - 250)}, Range: ${range} km`;
+        
+        // Hide alert after 3 seconds
+        setTimeout(() => {
+          alertPanel.style.display = 'none';
+        }, 3000);
+        
+        // Update targets counter
+        targets++;
+        targetsCounter.textContent = targets;
+        
+        // Mark as detected
+        blipObject.detected = true;
+      }, 200);
+      
+      // Remove blip after animation completes
+      setTimeout(() => {
+        if (blip.parentNode) {
+          blip.parentNode.removeChild(blip);
+        }
+        // Remove from array
+        const index = blips.indexOf(blipObject);
+        if (index > -1) {
+          blips.splice(index, 1);
+        }
+      }, 3000);
+    }
+    
+    // Generate blips periodically, but only in the current scan area
+    function startBlipGeneration() {
+      // Initial delay before first blip
+      setTimeout(() => {
+        // Set up recurring blips with random intervals
+        function scheduleNextBlip() {
+          // Only create a blip if scanning is active
+          if (isScanning) {
+            // Determine if a blip should appear (30% chance)
+            if (Math.random() < 0.3) {
+              createRandomBlip();
+            }
+          }
+          
+          // Check for new blips more frequently to make them align with the scanner
+          const delay = Math.random() * 300 + 200; // 200-500ms
+          setTimeout(() => {
+            scheduleNextBlip();
+          }, delay);
+        }
+        
+        scheduleNextBlip();
+      }, 2000);
+    }
+    
+    // Start the blip generation
+    startBlipGeneration();
+  </script>
+</body>
+</html>
